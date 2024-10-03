@@ -1,10 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-# Ik neem aan dat de functie en variable namen grotendeels zichzelf documenten als ze goed
-# benaamd zijn, als je om een of andere reden overal comments wilt hebben geef dat aub aan.
-# Ik weet dat het gebruikelijk is in academische wetenschappen om grotendeels al je code
-# te commenten, maar dat is juist omdat de gemiddelde academische wetenschapper echt heel
-# slecht is in programmeren en dus wel in taal moet uitleggen wat hun onleesbare code doet.
 
 def plot_function(x_axis, y_axis, output_name):
     fig, ax = plt.subplots()
