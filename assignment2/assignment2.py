@@ -20,11 +20,12 @@ def plot_function(x_axis: NDArray, y_axis: NDArray, figure_name: str):
         figure_name: name to save the figure as
     """
     _, ax = plt.subplots()
+    matrix_sizes = [f"{2}^{x}" for x in x_axis]
     ax.set_title("The relation between the size of a matrix and its condition number")
     ax.set_xlabel("size of matrix", fontsize=14, fontweight="bold")
     ax.set_ylabel("condition number", fontsize=14, fontweight="bold")
 
-    ax.plot(x_axis, y_axis)
+    ax.plot(matrix_sizes, y_axis)
     plt.savefig(figure_name, dpi=150, bbox_inches="tight")
 
 
@@ -39,7 +40,9 @@ def estimate_quadratic_exponent(x_axis: NDArray, y_axis: NDArray) -> list:
         y: NDArray containing the valuies for the y axes
     """
     logarithmic_condition_numbers = [np.log(element) for element in y_axis]
-    coefficients = np.polyfit(x_axis, logarithmic_condition_numbers, 1)
+    x_values = [np.log(2**x) for x in x_axis]
+
+    coefficients = np.polyfit(x_values, logarithmic_condition_numbers, 1)
     quadratic_exponent = np.exp(coefficients[0])
     return quadratic_exponent
 
