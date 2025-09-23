@@ -2,7 +2,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 
-def LU_decomposition(matrix: NDArray) -> NDArray:
+def LU_decomposition_old(matrix: NDArray) -> NDArray:
     """
     Returns the LU decomposition of a given square matrix without using pivoting.
 
@@ -22,7 +22,6 @@ def LU_decomposition(matrix: NDArray) -> NDArray:
     for i in range(length_of_given_square_matrix):
         # Fill diagonal of L matrix with 1's
         lower_triangular[i][i] = 1
-        # MORE COMMENTS HERE
         for j in range(i, length_of_given_square_matrix):
             sum_of_previous_calculated_elements = 0
             for k in range(i):
@@ -44,32 +43,47 @@ def LU_decomposition(matrix: NDArray) -> NDArray:
     return lower_triangular, upper_triangular
 
 
-def LU_decomposition_no_LU_matrices(matrix):
-    if matrix.shape[0] != matrix.shape[1]:
+
+def LU_decomposition(matrix: NDArray) -> NDArray:
+    """
+    Performs in-place LU decomposition using Gaussian elimination without pivoting.
+
+    Arguments:
+        matrix: NDArray, the square matrix to be decomposed
+    """
+    if matrix_is_not_square(matrix):
         raise TypeError("Given matrix is not square.")
+    if matrix_is_not_of_type_float(matrix):
+        matrix = matrix.astype(float)
 
-    # This works, now find universal algorithm
-    # length_of_given_square_matrix = len(matrix)
-    print(f"pivot element: {matrix[1, 0]}")
-    multiplier = matrix[1, 0] / matrix[0, 0]
-    print(f"multiplier: {multiplier}")
-    matrix[1] = matrix[1] - multiplier * matrix[0]
-    matrix[1, 0] = multiplier
-    print(matrix)
-    pass
+    dictionary = {}
+    # Forward elimination
+    for pivot_index in range(len(matrix)):
+        # Eliminate entries below the current pivot
+        for matrix_index in range(pivot_index + 1, len(matrix)):
+            multiplier = matrix[matrix_index, pivot_index] / matrix[pivot_index, pivot_index]
+            matrix[matrix_index] = matrix[matrix_index] - multiplier * matrix[pivot_index]
+            # Save current lower triangular part for later usage
+            dictionary[matrix_index, pivot_index] = multiplier
+    # Add the lower part of the matrix
+    for (row, col), multi in dictionary.items():
+        matrix[row, col] = multi
+    return matrix
 
 
-input = np.array([[2, -1, 1], [4, 1, -1], [1, 1, 2]])
+input = np.array([[6, 18, 3], [2, 12, 1], [4, 15, 3]])
 print(f"input:\n {input}\n")
 
-LU_decomposition_no_LU_matrices(input)
-
-# L, U= LU_decomposition(input)
-# print(f"{L} \n\n {U}")
-
+output = LU_decomposition(input)
+print(f"output: \n {output}\n")
 
 # _________________________________________________________________________________________________________________________
 
+def matrix_is_not_of_type_float(matrix: NDArray) -> bool:
+    return matrix.dtype is not float
+
+def matrix_is_not_square(matrix: NDArray) -> bool:
+    return matrix.shape[0] != matrix.shape[1]
 
 def matrices_have_mismatched_sizes(matrix_length, right_hand_side):
     """"""
