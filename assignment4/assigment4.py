@@ -36,7 +36,7 @@ def cholesky_decomposition(input_matrix: NDArray) -> NDArray:
 
 
 input = np.array([[4, 12, -16], [12, 37, -43], [-16, -43, 98]])
-print(cholesky_decomposition(input))
+print(f"Lower triangular matrix L_*:\n {cholesky_decomposition(input)}")
 
 
 def calculate_cholesky_running_time(tridiagonal_matrix_of_size_i: NDArray) -> float:
@@ -71,7 +71,11 @@ def calculate_lu_running_time(tridiagonal_matrix_of_size_i):
     return elapsed_time
 
 
-def plot_function(matrix_sizes: list[Any], cholesky_running_times: list[Any], lu_running_times: list[Any]):
+def plot_function(
+    matrix_sizes: list[Any],
+    cholesky_running_times: list[Any],
+    lu_running_times: list[Any],
+):
     """Produces a loglog plot given specific data.
 
     Arguments:
