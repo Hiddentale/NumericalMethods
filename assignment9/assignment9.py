@@ -37,7 +37,7 @@ def given_function():
 
 
 def plot_error(number_of_subintervals, errors):
-    plt.loglog(number_of_subintervals, errors)
+    plt.loglog(number_of_subintervals, errors, 'bo-')
     plt.xlabel("Step size h")
     plt.ylabel("Error")
     plt.title(
@@ -58,3 +58,7 @@ if __name__ == "__main__":
         errors.append(abs(true_value - result))
 
     plot_error(errors, [1 / x for x in number_of_subintervals])
+
+    p = np.polyfit(np.log(number_of_subintervals), np.log(errors), 1)[0]
+    print(f"Observed convergence rate: {p:.2f}")
+    
