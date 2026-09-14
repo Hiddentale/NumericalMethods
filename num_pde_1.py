@@ -51,31 +51,34 @@ def plot_function(
     plt.savefig(figurename, dpi=150, bbox_inches="tight")
 
 
-def given_function(x: NDArray) -> NDArray:
-    "The function that was given in the exercise"
-    return (1 - np.cos(x)) / np.power(x, 2)
+def given_function(x: float) -> float:
+    """The function that was given in the exercise"""
+    return np.sin(x)
 
 
-def adjusted_function(x: NDArray) -> NDArray:
-    "Adjusted function that sidesteps the numerical cancellation that happens for the original function"
-    sin_term = np.sin(x / 2)
-    numerator = 2 * np.power(sin_term, 2)
-    denominator = np.power(x, 2)
-    result = numerator / denominator
-    return result
+def derivative(x: float) -> float:
+    """Derivative of the function that was given in the exercise"""
+    return np.cos(x)
+
+
+def one_sided_approximation(a, b, c, x: float, h: float) -> float:
+    """Computes the one sided approximation given in the exercise"""
+    return (
+        a * given_function(x)
+        + b * given_function(x - h)
+        + c * given_function(x - 2 * h)
+    )
+
+
+def compute_error(a, b, c, x: float, h: float) -> float:
+    """Computes the error of the one sided approximation to the exact value"""
+    return np.abs(one_sided_approximation(a, b, c, x, h) - derivative(x))
 
 
 if __name__ == "__main__":
-
-    x = np.logspace(-9, -6, 50000)
-    y = given_function(x)
-    plot_function(x, y, r"$f(x) = \frac{1 - \cos(x)}{x^2}$", "output_plot.png")
-
-    y = adjusted_function(x)
-    plot_function(
-        x,
-        y,
-        r"$f(x) = \frac{2\sin^2(\frac{x}{2})}{x^2}$",
-        "output_plot_adjusted.png",
-        True,
-    )
+    h = np.logspace(1, 0.00001)
+    x = 1.0
+    for nudge in h:
+        print(compute_error(1.0, 1.0, 1.0, x, nudge))
+    # y = given_function(x)
+    # plot_function(x, y, r"$$", "output_plot.png")
