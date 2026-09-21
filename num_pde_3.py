@@ -35,49 +35,34 @@ def initial_values(matrix_width):
     pass
 
 
-def pde_approximation():
-    for space_step in space_step_vector:
-        # Initializations in h
-        initial_number_of_spatial_points = int(1 / space_step)
-        dT = 1 / 6 * (space_step**2)
-        r = 1 / 6
-
-        # vector of initial conditions
-        x = np.linspace(start=0, stop=1, num=initial_number_of_spatial_points + 1)
-        vec = np.vectorize()
-
-        solution = ftcs_algorithm(x)
-
-        error_iter_inf = []
-        error_inf.append(error_iter_inf)
-
-
-# Computation of rate of convergence
-rate_inf = None
-print(f"The empirical inf rate is: {rate_inf}")
-
 if __name__ == "__main__":
     mesh_fourier_number = 1 / 6
-    x_exact = np.linspace(start=0, stop=1, num=201)  # fix this
     final_time = 0.2
     number_of_iterations = 8
-    initial_number_of_spatial_points = 5
-    initial_space_step = 1 / initial_number_of_spatial_points
+    initial_number_of_spatial_points_J = 5
+    initial_space_step_h = 1 / initial_number_of_spatial_points_J
     space_steps = [
-        initial_space_step * (2 ** (-i)) for i in range(0, number_of_iterations)
+        initial_space_step_h * (2 ** (-i)) for i in range(0, number_of_iterations)
     ]
-    print(space_steps)
-    print(tridiagonal_S(5, mesh_fourier_number))
-    x_values = np.linspace(0, 1, 6)
-    print(x_values)
-    initial_values = initial_condition(x_values)
-    print(initial_values)
-    U_1 = (
-        tridiagonal_S(initial_number_of_spatial_points + 1, mesh_fourier_number)
-        * initial_values
-    )
-    print(U_1)
-    # error_inf = []
-    # plot_error(space_step_vector, error_inf)
+    print(f"space_steps: {space_steps}")
+    time_steps = [
+        mesh_fourier_number * pow(space_step, 2) for space_step in space_steps
+    ]
+    print(f"time_steps: {time_steps}")
+    number_of_interior_points = [
+        int((1 / space_step) - 1) for space_step in space_steps
+    ]
 
-    pass
+    x_values = space_steps[0] * np.arange(1, number_of_interior_points[0] + 1)
+    print(f"x_values: {x_values}")
+    number_of_time_steps = round(final_time / time_steps[0])
+    initial_values = initial_condition(x_values)
+
+    approximated_values = initial_values
+    tridiagonal = tridiagonal_S(number_of_interior_points[0], mesh_fourier_number)
+    for _ in range(number_of_time_steps):
+        approximated_values = tridiagonal @ approximated_values
+    print(f"approx_values: {approximated_values}")
+    difference = exact_solution(x_values, 0.2) - approximated_values
+    print(f"difference: {difference}")
+    print(np.max(difference))
