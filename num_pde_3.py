@@ -22,13 +22,23 @@ def calculate_error(x_values, approximated_values):
     return np.max(difference)
 
 
+def convergence_order(space_step_vector, error):
+    """Estimates the local order of convergence, using p = log(error1/error2) / log(h1/h2)."""
+
+    order_of_convergence = np.log(error[:-1] / error[1:]) / np.log(
+        space_step_vector[:-1] / space_step_vector[1:]
+    )
+    return order_of_convergence
+
+
 def exact_solution(x, t):
     """The given exact solution."""
     return np.pow(np.e, (-4 * np.pow(np.pi, 2) * t)) * np.sin(2 * np.pi * x)
 
 
 def ftcs_algorithm(tridiagonal, approximated_values):
-    """The given matrix-based Forward Time Centered Space algorithm."""
+    """The given matrix-based Forward Time Centered Space algorithm in the case that b^n = 0,
+    as mentioned in (3.25) of the lecture notes."""
     return approximated_values @ tridiagonal
 
 
@@ -82,4 +92,7 @@ if __name__ == "__main__":
             number_of_interior_points,
         )
         errors.append(calculate_error(x_values, approximated_values))
+    print(
+        f"convergence_orders: {convergence_order(np.asarray(space_steps), np.asarray(errors))}"
+    )
     plot_error(space_steps, errors)
