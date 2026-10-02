@@ -2,17 +2,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.sparse import diags, linalg
 
-MESH_FOURIER_NUMBER = 2
 
-
-def approximate_solution(final_time, time_steps, x_values, number_of_interior_points):
+def approximate_solution(
+    final_time, time_step, space_step, x_values, number_of_interior_points
+):
     """Approximates the diffusion equation through the use of the Crank-Nicolson scheme."""
-    number_of_time_steps = round(final_time / time_steps[i])
+    number_of_time_steps = round(final_time / time_step)
     initial_values = initial_condition(x_values)
 
+    mesh_fourier_number = time_step / np.pow(space_step, 2)
+
     approximated_values = initial_values
-    S = construct_S(number_of_interior_points[i])
-    M = construct_M(number_of_interior_points[i])
+    S = construct_S(number_of_interior_points[i], mesh_fourier_number, space_step)
+    M = construct_M(number_of_interior_points[i], mesh_fourier_number)
     for _ in range(number_of_time_steps):
         approximated_values = crank_nicolson_algorithm(M, S, approximated_values)
     return approximated_values
@@ -56,30 +58,33 @@ def plot_error(space_step_vector, error):
     plt.show()
 
 
-def construct_M(matrix_width):
+def construct_M(matrix_width, mesh_fourier_number):
     """Constructs the tridagonal matrix M given a matrix width."""
-    diagonal = np.full(shape=matrix_width, fill_value=1 + MESH_FOURIER_NUMBER)
+    diagonal = np.full(shape=matrix_width, fill_value=1 + mesh_fourier_number)
     lower_diagonal = np.full(
-        shape=matrix_width - 1, fill_value=-0.5 * MESH_FOURIER_NUMBER
+        shape=matrix_width - 1, fill_value=-0.5 * mesh_fourier_number
     )
-    M = diags([diagonal, lower_diagonal, lower_diagonal], [0, -1, 1])
+    M = diags([diagonal, lower_diagonal, lower_diagonal], [0, -1, 1], format="csc")
     return M
 
 
-def construct_S(matrix_width):
+def construct_S(matrix_width, mesh_fourier_number, space_step):
     """Constructs the tridagonal matrix S given a matrix width."""
-    diagonal = np.full(shape=matrix_width, fill_value=1 - MESH_FOURIER_NUMBER)
-    lower_diagonal = np.full(
-        shape=matrix_width - 1, fill_value=0.5 * MESH_FOURIER_NUMBER
+    diagonal = np.full(
+        shape=matrix_width,
+        fill_value=1 - mesh_fourier_number * (1 + np.pow(space_step, 2)),
     )
-    S = diags([diagonal, lower_diagonal, lower_diagonal], [0, -1, 1])
+    lower_diagonal = np.full(
+        shape=matrix_width - 1, fill_value=0.5 * mesh_fourier_number
+    )
+    S = diags([diagonal, lower_diagonal, lower_diagonal], [0, -1, 1], format="csc")
     return S
 
 
 if __name__ == "__main__":
     final_time = 0.2
-    number_of_iterations = 8
-    initial_number_of_spatial_points_J = 5
+    number_of_iterations = 12
+    initial_number_of_spatial_points_J = 10
     initial_space_step_h = 1 / initial_number_of_spatial_points_J
 
     space_steps = [
@@ -95,7 +100,8 @@ if __name__ == "__main__":
         x_values = space_steps[i] * np.arange(1, number_of_interior_points[i] + 1)
         approximated_values = approximate_solution(
             final_time,
-            time_steps,
+            time_steps[i],
+            space_steps[i],
             x_values,
             number_of_interior_points,
         )
