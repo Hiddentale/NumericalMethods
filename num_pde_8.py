@@ -1,7 +1,7 @@
-import numpy as np
 import matplotlib.pyplot as plt
-from scipy.sparse import diags
+import numpy as np
 from numpy.typing import NDArray
+from scipy.sparse import diags
 
 
 def plot_function(
@@ -83,7 +83,6 @@ def construct_S(matrix_width, cfl_number):
 
 
 if __name__ == "__main__":
-
     final_time = 1.0
     initial_number_of_spatial_points_J = 100
     space_step = 1 / initial_number_of_spatial_points_J

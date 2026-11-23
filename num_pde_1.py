@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.typing import NDArray
 import seaborn as sns
+from numpy.typing import NDArray
 
 # Style settings for the plots
 sns.set_style("darkgrid")
@@ -61,8 +61,11 @@ def derivative(x: float) -> float:
     return np.cos(x)
 
 
-def one_sided_approximation(a, b, c, x: float, h: float) -> float:
+def one_sided_approximation(x: float, h: float):
     """Computes the one sided approximation given in the exercise"""
+    a = 3 / (2 * h)
+    b = -2 / h
+    c = 1 / (2 * h)
     return (
         a * given_function(x)
         + b * given_function(x - h)
@@ -70,9 +73,9 @@ def one_sided_approximation(a, b, c, x: float, h: float) -> float:
     )
 
 
-def compute_error(a, b, c, x: float, h: float) -> float:
+def compute_error(x: float, h: float) -> float:
     """Computes the error of the one sided approximation to the exact value"""
-    return np.abs(one_sided_approximation(a, b, c, x, h) - derivative(x))
+    return np.abs(one_sided_approximation(x, h) - derivative(x))
 
 
 if __name__ == "__main__":
