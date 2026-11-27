@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.typing import NDArray
+from scipy.sparse import diags
 import polars as pl
+import math
 
 
 def plot_function(
@@ -52,28 +54,120 @@ def approximate_transport_equation_solution(
     number_of_interior_points,
     cfl_number,
 ) -> NDArray:
-    """Approximates the transport equation through the use of the FTFS scheme."""
+    """Approximates the transport equation through the use of the Lax-Wendroff scheme."""
     approximated_values = np.zeros((len(time_values), len(x_values)))
     approximated_values[0, :] = initial_condition(x_values)
     approximated_values[:, 0] = boundary_condition(time_values)
 
-    visualize_matrix(approximated_values, x_values, time_values)
-
     tridiagonal = transport_equation_construct_S(number_of_interior_points, cfl_number)
     for n in range(len(time_values) - 1):
         approximated_values[n + 1, 1:-1] = tridiagonal @ approximated_values[n, 1:-1]
-        # Some kind of issue here still at boundary
         approximated_values[n + 1, -1] = upwind_scheme(
             approximated_values[n], cfl_number
         )
+        approximated_values[n + 1, 1] += (
+            1 / 2 * cfl_number * (1 + cfl_number)
+        ) * approximated_values[n, 0]
+        approximated_values[n + 1, -2] += (
+            -1 / 2 * cfl_number * (1 - cfl_number)
+        ) * approximated_values[n, -1]
 
-    visualize_matrix(approximated_values, x_values, time_values)
+    # visualize_matrix(approximated_values, x_values, time_values)
+    return approximated_values
 
 
 def upwind_scheme(approximated_values, cfl_number):
     return approximated_values[-1] - cfl_number * (
-        approximated_values[-1] + approximated_values[-2]
+        approximated_values[-1] - approximated_values[-2]
     )
+
+
+def transport_equation_construct_S(matrix_width, cfl_number):
+    """Constructs the tridagonal matrix S, for the approximation of the transport equation, given a matrix width."""
+    diagonal = np.full(
+        shape=matrix_width,
+        fill_value=1 - np.pow(cfl_number, 2),
+    )
+    upper_diagonal = np.full(
+        shape=matrix_width - 1, fill_value=-1 / 2 * cfl_number * (1 - cfl_number)
+    )
+    lower_diagonal = np.full(
+        shape=matrix_width - 1, fill_value=1 / 2 * cfl_number * (1 + cfl_number)
+    )
+    S = diags([diagonal, upper_diagonal, lower_diagonal], [0, 1, -1], format="csc")
+    return S
+
+
+def calculate_error(x_values, approximated_values, exact_solution, final_time):
+    """Calculates the maximum error between components of two matrices."""
+    difference = abs(exact_solution(x_values, final_time) - approximated_values[-1])
+    return np.max(difference)
+
+
+def convergence_order(space_step_vector, error):
+    """Estimates the local order of convergence, using p = log(error1/error2) / log(h1/h2)."""
+
+    order_of_convergence = np.log(error[:-1] / error[1:]) / np.log(
+        space_step_vector[:-1] / space_step_vector[1:]
+    )
+    return order_of_convergence
+
+
+def plot_error(space_step_vector, error):
+    """Plots the given error on a loglog graph."""
+    _, ax = plt.subplots()
+    ax.loglog(space_step_vector, error)
+    ax.set_xlabel("number of spatial points", fontsize=14, fontweight="bold")
+    ax.set_ylabel("error", fontsize=14, fontweight="bold")
+    plt.grid()
+    plt.show()
+
+
+def evaluate_empirical_convergence(u_0, g0_u, cfl_number, u_exact, final_time, c):
+    initial_number_of_spatial_points = [25, 50, 100, 200, 400]
+    errors = []
+    space_steps = []
+    for number_of_spatial_points in initial_number_of_spatial_points:
+        space_step = 1 / number_of_spatial_points
+        number_of_time_steps = math.ceil(final_time * c / (cfl_number * space_step))
+        time_step = final_time / number_of_time_steps
+        actual_cfl_number = c * time_step / space_step
+        space_steps.append(space_step)
+        x_values = np.linspace(start=0, stop=1, num=number_of_spatial_points + 1)
+        time_values = np.linspace(
+            start=0, stop=final_time, num=number_of_time_steps + 1
+        )
+
+        number_of_interior_points = int((1 / space_step) - 1)
+
+        approximated_values = approximate_transport_equation_solution(
+            u_0,
+            g0_u,
+            time_values,
+            x_values,
+            number_of_interior_points,
+            actual_cfl_number,
+        )
+        errors.append(
+            calculate_error(x_values, approximated_values, u_exact, final_time)
+        )
+    print(
+        f"convergence_orders: {convergence_order(np.asarray(space_steps), np.asarray(errors))}"
+    )
+    plot_error(space_steps, errors)
+
+
+if __name__ == "__main__":
+    c, alpha, kappa, final_time = 1.0, 1.0, 1.0, 1.0
+    cfl_number = 0.8
+
+    def u_exact(x, t):
+        return np.sin(2 * np.pi * (x - c * t))
+
+    u_0 = lambda x: u_exact(x, 0)
+    g0_u = lambda t: u_exact(0, t)
+
+    evaluate_empirical_convergence(u_0, g0_u, cfl_number, u_exact, final_time, c)
 
 
 # def approximate_heat_equation_solution(
@@ -103,38 +197,6 @@ def upwind_scheme(approximated_values, cfl_number):
 #         )
 #         solution_values.append(approximated_values)
 #     return np.array(solution_values)
-
-
-# def exact_solution(initial_condition, boundary_condition, x, t):
-#     """The calculated exact solution."""
-#     return np.where(x + t <= 1, initial_condition(x - t), boundary_condition)
-
-
-# def chase_1(x: np.ndarray):
-#     """The given initial condition for case 1."""
-#     return np.pow(np.e, -400 * np.pow(x - 0.85, 2))
-
-
-# def chase_2(x: np.ndarray):
-#     """The given initial condition for case 2."""
-#     return np.where((x > 0.85) & (x <= 1), 1.0, 0.0)
-
-
-def transport_equation_construct_S(matrix_width, cfl_number):
-    """Constructs the tridagonal matrix S, for the approximation of the transport equation, given a matrix width."""
-    diagonal = np.full(
-        shape=matrix_width,
-        fill_value=1 - np.pow(cfl_number, 2),
-    )
-    upper_diagonal = np.full(
-        shape=matrix_width - 1, fill_value=-1 / 2 * cfl_number * (1 - cfl_number)
-    )
-    lower_diagonal = np.full(
-        shape=matrix_width - 1, fill_value=1 / 2 * cfl_number * (1 + cfl_number)
-    )
-    S = np.diags([diagonal, upper_diagonal, lower_diagonal], [0, 1, -1], format="csc")
-    return S
-
 
 # def construct_M(matrix_width, mesh_fourier_number):
 #     """Constructs the tridagonal matrix M, for the approximation of the heat equation, given a matrix width."""
@@ -174,67 +236,3 @@ def transport_equation_construct_S(matrix_width, cfl_number):
 #     return (
 #         time_delta * alpha * (np.gradient(approximated_values, time_delta, axis=0) ** 2)
 #     )
-
-
-if __name__ == "__main__":
-    c, alpha, kappa, T = 1.0, 1.0, 1.0, 1.0
-
-    def u_exact(x, t):
-        return np.sin(2 * np.pi * (x - c * t))
-
-    u_0 = lambda x: u_exact(x, 0)
-    g0_u = lambda t: u_exact(0, t)
-
-    final_time = 1.0
-    initial_number_of_spatial_points_J = 100
-    space_step = 1 / initial_number_of_spatial_points_J
-    cfl_number = 0.8
-    time_step = int(final_time / (cfl_number * space_step))
-    x_values = np.linspace(start=0, stop=1, num=initial_number_of_spatial_points_J + 1)
-    print(len(x_values))
-    time_steps = np.linspace(start=0, stop=final_time, num=time_step + 1)
-
-    number_of_interior_points = int((1 / space_step) - 1)
-
-    approximated_u_values = approximate_transport_equation_solution(
-        u_0,
-        g0_u,
-        time_steps,
-        x_values,
-        number_of_interior_points,
-        cfl_number,
-    )
-    # exact_values = []
-    # for time_step in time_steps:
-    #     exact_values.append(exact_solution(chase_1, 0.0, x_values, time_step))
-    # plot_function(
-    #     x_values,
-    #     approximated_u_values[::25],
-    #     exact_values[::25],
-    #     f"{chase_1.__name__}",
-    # )
-    # source = approximate_u_time_derivative(time_step, approximated_u_values)
-
-    # approximated_theta_values = approximate_heat_equation_solution()
-    # cases = [(chase_1, 0.0), (chase_2, 1.0)]
-    # for case, boundary_condition in cases:
-    #     approximated_values = approximate_transport_equation_solution(
-    #         case,
-    #         boundary_condition,
-    #         time_steps,
-    #         x_values,
-    #         number_of_interior_points,
-    #         cfl_number,
-    #     )
-
-    #     exact_values = []
-    #     for time_step in time_steps:
-    #         exact_values.append(
-    #             exact_solution(case, boundary_condition, x_values, time_step)
-    #         )
-    #     plot_function(
-    #         x_values,
-    #         approximated_values[::25],
-    #         exact_values[::25],
-    #         f"{case.__name__}",
-    #     )
