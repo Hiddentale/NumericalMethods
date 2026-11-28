@@ -7,3 +7,8 @@ dependencies = [
     "numpy>=2.5.5",
     "scipy>=1.18.1",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["slow: long-running convergence tests"]

@@ -123,8 +123,15 @@ def plot_error(space_step_vector, error):
     plt.show()
 
 
-def evaluate_empirical_convergence(u_0, g0_u, cfl_number, u_exact, final_time, c):
-    initial_number_of_spatial_points = [25, 50, 100, 200, 400]
+def evaluate_empirical_convergence(
+    u_0,
+    g0_u,
+    cfl_number,
+    u_exact,
+    final_time,
+    c,
+    initial_number_of_spatial_points=[25, 50, 100, 200, 400],
+):
     errors = []
     space_steps = []
     for number_of_spatial_points in initial_number_of_spatial_points:
@@ -151,23 +158,64 @@ def evaluate_empirical_convergence(u_0, g0_u, cfl_number, u_exact, final_time, c
         errors.append(
             calculate_error(x_values, approximated_values, u_exact, final_time)
         )
-    print(
-        f"convergence_orders: {convergence_order(np.asarray(space_steps), np.asarray(errors))}"
-    )
-    plot_error(space_steps, errors)
+    space_steps = np.asarray(space_steps)
+    errors = np.asarray(errors)
+    return space_steps, errors, convergence_order(space_steps, errors)
 
 
 if __name__ == "__main__":
     c, alpha, kappa, final_time = 1.0, 1.0, 1.0, 1.0
-    cfl_number = 0.8
+    MESH_FOURIER_NUMBER = 0.8
 
-    def u_exact(x, t):
-        return np.sin(2 * np.pi * (x - c * t))
+    def theta_exact(x, t):
+        return (np.e**-t) * np.cos(np.pi * x)
 
-    u_0 = lambda x: u_exact(x, 0)
-    g0_u = lambda t: u_exact(0, t)
+    theta_0 = lambda x: theta_exact(x, 0)
+    g0_theta = lambda t: theta_exact(0, t)
 
-    evaluate_empirical_convergence(u_0, g0_u, cfl_number, u_exact, final_time, c)
+
+def approximate_heat_equation_solution(
+    initial_condition,
+    boundary_condition_left,
+    boundary_condition_right,
+    time_values,
+    x_values,
+    number_of_interior_points,
+    mesh_fourier_number,
+) -> NDArray:
+    """Approximates the heat equation through the use of the Crank-Nicolson scheme."""
+    approximated_values = np.zeros((len(time_values), len(x_values)))
+    approximated_values[0, :] = initial_condition(x_values)
+    approximated_values[:, 0] = boundary_condition_left(time_values)
+    approximated_values[:, -1] = boundary_condition_right(time_values)
+
+    tridiagonal = heat_equation_construct_S(
+        number_of_interior_points, mesh_fourier_number
+    )
+    for n in range(len(time_values) - 1):
+        approximated_values[n + 1, 1:-1] = tridiagonal @ approximated_values[n, 1:-1]
+        approximated_values[n + 1, 1] += (
+            0.5 * mesh_fourier_number
+        ) * approximated_values[n, 0]
+        approximated_values[n + 1, -2] += (
+            0.5 * mesh_fourier_number
+        ) * approximated_values[n, -1]
+
+    # visualize_matrix(approximated_values, x_values, time_values)
+    return approximated_values
+
+
+def heat_equation_construct_S(matrix_width, mesh_fourier_number):
+    """Constructs the tridagonal matrix S, for the approximation of the heat equation, given a matrix width."""
+    diagonal = np.full(
+        shape=matrix_width,
+        fill_value=1 - mesh_fourier_number,
+    )
+    lower_diagonal = np.full(
+        shape=matrix_width - 1, fill_value=0.5 * mesh_fourier_number
+    )
+    S = diags([diagonal, lower_diagonal, lower_diagonal], [0, -1, 1], format="csc")
+    return S
 
 
 # def approximate_heat_equation_solution(
